@@ -1,7 +1,6 @@
 # BranchMatch
 The official implementation of the paper code will be made public after the paper is accepted.
 
-### BranchMatch: Marker-Free Point Cloud Registration for Individual Apple Trees with Limited Overlap
 ### Authors
 - Ning Wang
 - Yanlong Miao
