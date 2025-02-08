@@ -2,30 +2,28 @@
 
 void PointCloudPreprocessor::ransac_ground(int it_n, float dis, bool ground_ornot)
 {
-	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered0(new pcl::PointCloud<pcl::PointXYZ>);//Ôİ´æ,´æ·ÅÆ½ÃæÄâºÏºóÈ¥³ı½á¹û
-	pcl::PointIndices::Ptr inliers(new pcl::PointIndices);//´æ´¢ÄÚµãµÄµãË÷Òı¼¯ºÏ¶ÔÏó
-	pcl::SACSegmentation<pcl::PointXYZ> seg;//´´½¨·Ö¸î¶ÔÏó
+	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered0(new pcl::PointCloud<pcl::PointXYZ>);
+	pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
+	pcl::SACSegmentation<pcl::PointXYZ> seg;
 	seg.setAxis(Eigen::Vector3f(0.0f, 0.0f, 1.0f));
 	seg.setEpsAngle(pcl::deg2rad(0.01));
-	seg.setOptimizeCoefficients(true);//ÉèÖÃÄ£ĞÍÏµÊıĞèÒªÓÅ»¯(¿ÉÑ¡)
-	seg.setModelType(pcl::SACMODEL_PLANE);//ÉèÖÃÄ£ĞÍÀàĞÍ
-	seg.setMethodType(pcl::SAC_RANSAC);//ÉèÖÃËæ»ú²ÉÑùÒ»ÖÂĞÔ·½·¨
-	seg.setMaxIterations(it_n);//ÉèÖÃ×î´óµü´ú´ÎÊı,10000
-	seg.setDistanceThreshold(dis);//ÉèÖÃ¾àÀëãĞÖµ,0.12m
-	seg.setInputCloud(clouds_in);//ÊäÈëµãÔÆ
-	seg.segment(*inliers, *ground_plane_coefficients);//´æ´¢·Ö¸î½á¹ûµ½µãË÷Òı£»Ä£ĞÍ²ÎÊıµ½coefficient
+	seg.setOptimizeCoefficients(true);
+	seg.setModelType(pcl::SACMODEL_PLANE);
+	seg.setMethodType(pcl::SAC_RANSAC);
+	seg.setMaxIterations(it_n);
+	seg.setDistanceThreshold(dis);
+	seg.setInputCloud(clouds_in);
+	seg.segment(*inliers, *ground_plane_coefficients);
 	if (inliers->indices.size() == 0)
 	{
 		std::cout << "Error! Couldn't found any inliers!" << std::endl;
 	}
-	pcl::ExtractIndices<pcl::PointXYZ> extractor;//µãÌáÈ¡¶ÔÏó
+	pcl::ExtractIndices<pcl::PointXYZ> extractor;
 	extractor.setInputCloud(clouds_in);
 	extractor.setIndices(inliers);
-	//Ä¬ÈÏÇé¿öÏÂ£¨Î´µ÷ÓÃ setNegative() »òÒÑÉèÖÃÎª false£©£¬ÌáÈ¡µÄÊÇÕâĞ©Ë÷Òı¶ÔÓ¦µÄµã
 	extractor.setNegative(ground_ornot);
 	extractor.filter(*cloud_filtered0);
 
-	//È¥³ıÄâºÏÆ½ÃæµÄÏÂ·½ËùÓĞµÄµã
 	double a = ground_plane_coefficients->values[0];
 	double b = ground_plane_coefficients->values[1];
 	double c = ground_plane_coefficients->values[2];
@@ -41,48 +39,47 @@ void PointCloudPreprocessor::ransac_ground(int it_n, float dis, bool ground_orno
 
 	clouds_in = cloud_filtered;
 	std::cerr << "After remove ground,There have: " << cloud_filtered->size() << " points" << std::endl;
-	//pcl::io::savePCDFileBinary("no_ground_cloud.pcd", *cloud_filtered);//±£´æ½á¹ûµãÔÆ
+	//pcl::io::savePCDFileBinary("no_ground_cloud.pcd", *cloud_filtered);
 }
 
 void PointCloudPreprocessor::statiscal_removal(int a, float b)
 {
-	pcl::StatisticalOutlierRemoval<pcl::PointXYZ> sor;//´´½¨ÂË²¨Æ÷¶ÔÏó
-	sor.setInputCloud(clouds_in);//ÊäÈëµãÔÆ
-	sor.setMeanK(a);//ÉèÖÃÔÚ½øĞĞÍ³¼ÆÊ±¿¼ÂÇ²éÑ¯µÄÁÚ½üµãÊı£¬10
-	sor.setStddevMulThresh(b);//ÉèÖÃÅĞ¶ÏÊÇ·ñÎªÀëÈºµãµÄãĞÖµ,1.0ÎªÒ»¸ö±ê×¼²î¡£¼´£ºµ±ÅĞ¶ÏµãµÄk½üÁÚÆ½¾ù¾àÀë´óÓÚÈ«¾ÖµÄ1±¶±ê×¼²î+Æ½¾ù¾àÀë£¬¼´ÎªÀëÈºµã
-	sor.filter(*statiscal_filtered);//Ö´ĞĞÂË²¨´¦Àí±£´æÄÚµãµ½statiscal_filtered
+	pcl::StatisticalOutlierRemoval<pcl::PointXYZ> sor;
+	sor.setInputCloud(clouds_in);
+	sor.setMeanK(a);
+	sor.setStddevMulThresh(b);
+	sor.filter(*statiscal_filtered);
 
 	clouds_in = statiscal_filtered;
 	std::cerr << "After statiscal_filtering,There have: " << statiscal_filtered->size() << " points" << std::endl;
-	//pcl::io::savePCDFileBinary("statiscal_cloud.pcd", *statiscal_filtered);//±£´æ½á¹ûµãÔÆ
+	//pcl::io::savePCDFileBinary("statiscal_cloud.pcd", *statiscal_filtered);
 }
 
 void PointCloudPreprocessor::voxel_removal(float leaf_size)
 {
-	pcl::VoxelGrid <pcl::PointXYZ> sor;//ÂË²¨Æ÷´¦Àí¶ÔÏó
-	sor.setInputCloud(clouds_in);//ÉèÖÃÊäÈëµãÔÆ
-	sor.setLeafSize(leaf_size, leaf_size, leaf_size);//ÉèÖÃÂË²¨Æ÷´¦ÀíÊ±²ÉÓÃµÄÌåËØ´óĞ¡µÄ²ÎÊı£¬Ò»°ãÉèÌåËØ´óĞ¡ÊÇ³¤¿í¸ß¾ùÎª0.01
-	sor.filter(*voxel_filtered);//Ö´ĞĞÏÂ²ÉÑù£¬ÏÂ²ÉÑùÖ®ºóµÄµãÔÆÊı¾İ±£´æµ½ voxel_filter ÖĞ
+	pcl::VoxelGrid <pcl::PointXYZ> sor;
+	sor.setInputCloud(clouds_in);
+	sor.setLeafSize(leaf_size, leaf_size, leaf_size);
+	sor.filter(*voxel_filtered);
 
 	clouds_in = voxel_filtered;
 	std::cerr << "After voxel_filtering,There have: " << voxel_filtered->size() << " points" << std::endl;
-	//pcl::io::savePCDFileBinary("voxel_cloud.pcd", *voxel_filtered);//±£´æ½á¹ûµãÔÆ
+	//pcl::io::savePCDFileBinary("voxel_cloud.pcd", *voxel_filtered);
 }
 
 void PointCloudPreprocessor::cluster(float tol, int min_s, int max_s)
 {
-	pcl::search::KdTree<pcl::PointXYZ>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZ>);//´´½¨kd-treeÊµÀı
-	tree->setInputCloud(clouds_in);//ÊäÈëµãÔÆ
+	pcl::search::KdTree<pcl::PointXYZ>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZ>);
+	tree->setInputCloud(clouds_in);
 
-	std::vector<pcl::PointIndices> cluster_indices;//´æ´¢¾ÛÀàË÷Òı£¬ÏòÁ¿
-	pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;//´´½¨¾ÛÀàÊµÀı
-	ec.setClusterTolerance(tol); //ÉèÖÃ¾ÛÀàÊ±µÄÈİÈÌ¶È£¨¾àÀëãĞÖµ£©£¬0.05m
-	ec.setMinClusterSize(min_s);//ÉèÖÃ×îĞ¡¾ÛÀàµãÊı
-	ec.setMaxClusterSize(max_s);//ÉèÖÃ×î´ó¾ÛÀàµãÊı
-	ec.setSearchMethod(tree);//ÉèÖÃËÑË÷·½·¨Îªkdtree¶ÔÏó
-	ec.setInputCloud(clouds_in);//ÉèÖÃ´ı¾ÛÀàµÄµãÔÆ
-	ec.extract(cluster_indices);//¾ÛÀà³éÈ¡½á¹û±£´æÔÚÒ»¸öÊı×éÖĞ£¬Êı×éÖĞÃ¿¸öÔªËØ´ú±í³éÈ¡µÄÒ»¸ö¾ÛÀàµÄµãÔÆµÄÏÂ±ê
-	//Ö»ÌáÈ¡µãÊı×î¶àµÄ¾ÛÀà
+	std::vector<pcl::PointIndices> cluster_indices;
+	pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
+	ec.setClusterTolerance(tol); 
+	ec.setMinClusterSize(min_s);
+	ec.setMaxClusterSize(max_s);
+	ec.setSearchMethod(tree);
+	ec.setInputCloud(clouds_in);
+	ec.extract(cluster_indices);
 	std::size_t max_cluster_size = 0;
 	int max_cluster_index = -1;
 	for (std::size_t i = 0; i < cluster_indices.size(); i++)
@@ -105,7 +102,7 @@ void PointCloudPreprocessor::cluster(float tol, int min_s, int max_s)
 
 		clouds_in = clustered_cloud;
 		std::cerr << "After clustered,There have Single_tree: " << clustered_cloud->size() << " points" << std::endl;
-		//pcl::io::savePCDFileBinary("Clustered_cloud.pcd", *clustered_cloud);//±£´æ½á¹ûµãÔÆ
+		//pcl::io::savePCDFileBinary("Clustered_cloud.pcd", *clustered_cloud);
 	}
 	else
 	{
@@ -117,10 +114,10 @@ void PointCloudPreprocessor::height_filter(double a, double b)
 {
 	size_t j = 0;
 	Eigen::Vector4f pla_coe = { ground_plane_coefficients->values[0],ground_plane_coefficients->values[1], ground_plane_coefficients->values[2], ground_plane_coefficients->values[3] };
-	for (size_t i = 0; i < clouds_in->points.size(); i++)//µãµ½Æ½ÃæµÄ¾àÀë£¬ÓÃÀ´½ØÈ¡Ò»¶ÎÊ÷¸É
+	for (size_t i = 0; i < clouds_in->points.size(); i++)
 	{
 		pcl::PointXYZ p = { clouds_in->points[i].x,clouds_in->points[i].y,clouds_in->points[i].z };
-		if (pcl::pointToPlaneDistance(p, pla_coe) < b)//¾àÀëµØÃæÒ»¶¨¸ß¶È·¶Î§ÄÚµÄµã
+		if (pcl::pointToPlaneDistance(p, pla_coe) < b)
 		{
 			if (a < pcl::pointToPlaneDistance(p, pla_coe))
 			{
@@ -141,21 +138,21 @@ void PointCloudPreprocessor::height_filter(double a, double b)
 
 void PointCloudPreprocessor::mls_suface(int n, float r, bool store)
 {
-	pcl::search::KdTree<pcl::PointXYZ>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZ>);// ´´½¨Ò»¸öKDÊ÷
-	tree->setInputCloud(clouds_in);//ÊäÈëµãÔÆ
+	pcl::search::KdTree<pcl::PointXYZ>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZ>);
+	tree->setInputCloud(clouds_in);
 
-	pcl::MovingLeastSquares<pcl::PointXYZ, pcl::PointNormal> mls;// ¶¨Òå¶ÔÏó (µÚ¶şÖÖ¶¨ÒåÀàĞÍÊÇÎªÁË´æ´¢·¨Ïß, ¼´Ê¹ÓÃ²»µ½Ò²ĞèÒª¶¨Òå³öÀ´)
-	mls.setComputeNormals(true);//ÉèÖÃÔÚ×îĞ¡¶ş³Ë¼ÆËãÖĞĞèÒª½øĞĞ·¨Ïß¹À¼Æ
+	pcl::MovingLeastSquares<pcl::PointXYZ, pcl::PointNormal> mls;
+	mls.setComputeNormals(true);
 	mls.setInputCloud(clouds_in);
-	mls.setPolynomialOrder(n);//ÉèÖÃ¶àÏîÊ½µÄ½×Êı£¬Ä¬ÈÏÎª2
+	mls.setPolynomialOrder(n);
 	mls.setSearchMethod(tree);
-	mls.setSearchRadius(r);//ËÑË÷°ë¾¶£¬¹¹½¨¾Ö²¿Ä£ĞÍ,0.03
-	mls.process(*clouds_out);// ÇúÃæÖØ½¨
+	mls.setSearchRadius(r);
+	mls.process(*clouds_out);
 
-	std::cout << "After MLS,There have£º" << clouds_out->size() << " points" << std::endl;//test
+	std::cout << "After MLS,There haveï¼š" << clouds_out->size() << " points" << std::endl;//test
 	if (store)
 	{
-		//pcl::io::savePCDFileBinary("mls_trunk_cloud.pcd", *clouds_out);// ±£´æ½á¹ûµãÔÆ
+		//pcl::io::savePCDFileBinary("mls_trunk_cloud.pcd", *clouds_out);
 	}
 }
 
@@ -163,17 +160,17 @@ void PointCloudPreprocessor::normal_estimate(float r, bool store)
 {
 	pcl::NormalEstimation<pcl::PointXYZ, pcl::Normal> ne;
 	pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>);
-	pcl::search::KdTree<pcl::PointXYZ>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZ>);// ´´½¨Ò»¸öKDÊ÷
+	pcl::search::KdTree<pcl::PointXYZ>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZ>);
 	ne.setInputCloud(clouds_in);
 	ne.setSearchMethod(tree);
 	ne.setRadiusSearch(r);
 	ne.compute(*normals);
 	pcl::concatenateFields(*clouds_in, *normals, *n_clouds_out);
 
-	std::cout << "After normal_estimate,There have£º" << n_clouds_out->size() << " points" << std::endl;//test
+	std::cout << "After normal_estimate,There haveï¼š" << n_clouds_out->size() << " points" << std::endl;//test
 	if (store)
 	{
-		//pcl::io::savePCDFileBinary("n_trunk_cloud.pcd", *n_clouds_out);// ±£´æ½á¹ûµãÔÆ
+		pcl::io::savePCDFileBinary("n_trunk_cloud.pcd", *n_clouds_out);
 	}
 }
 
