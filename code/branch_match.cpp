@@ -101,7 +101,6 @@ MatchingResult BranchMatcher::MatchBranches(const CylinderParams& trunk_cylinder
         if (best_j != -1)
         {
             matches.emplace_back(i, best_j, last_lnscore, last_score);
-            //result.AddMatchedClusters(source_clusters_[i], target_clusters_[best_j], last_score);
         }
     }
     std::unordered_map<int, std::tuple<int, double, double>> best_matches; // target_index -> (source_index, score)
@@ -164,8 +163,6 @@ bool BranchMatcher::IsSameBranch(const ClusterInfo& source_cluster, const Cluste
 
     lnscore = (deltaR_norm * weightR) + (deltaTheta_norm * weightTheta) + (deltaH_norm * weightH);
     score = deltaR_norm + deltaTheta_norm + deltaH_norm;
-    //score = radius_similarity;
-
     return radius_similarity <= tol_r &&
         angle_similarity <= tol_theta &&
         height_similarity <= tol_z;
