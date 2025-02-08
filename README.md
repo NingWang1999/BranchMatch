@@ -1,5 +1,5 @@
 # BranchMatch
-The official implementation of the paper code will be made public after the paper is accepted.
+The more complete content of the paper will be supplemented after the paper is accepted.
 
 <!-- ### Authors
 - Ning Wang
