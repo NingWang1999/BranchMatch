@@ -24,7 +24,6 @@
 #include <pcl/common/common_headers.h>
 #include "cylinder_fitter.h"
 
-//点云预处理
 class PointCloudPreprocessor {
 public:
     PointCloudPreprocessor(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) :
@@ -39,25 +38,14 @@ public:
         no_trunk_(new pcl::PointCloud<pcl::PointXYZ>)
     { }
 
-    //拟合平面，滤除地面点云，获得地面平面参数
-    //it_n是迭代次数，dis是距离阈值
     void ransac_ground(int it_n, float dis, bool ground_ornot);
-    //a是近邻点个数，b是离去点阈值
     void statiscal_removal(int a, float b);
-    //leaf_size是体素的长宽高
     void voxel_removal(float leaf_size);
-    //因为有的树因为中间的线而断层，所以此聚类为可选
-    //tol为距离阈值，min_s为最小聚类点云数目，max_s为最大聚类点云数目
     void cluster(float tol, int min_s, int max_s);
-    //a,b是距离地面的区间
     void height_filter(double a, double b);
-    //n是多项式的阶数，r是搜索半径
     void mls_suface(int n, float r, bool store);
-    //法线估计
     void normal_estimate(float r, bool store);
-    // 返回地面平面参数
     pcl::ModelCoefficients::Ptr getGroundPlane(); 
-    //一个树木点云，去除树干部分
     void remove_trunk(const CylinderParams& trunk_axis_, pcl::PointCloud<pcl::PointXYZ>::Ptr have_trunk_, bool store);
 
     pcl::PointCloud<pcl::PointNormal>::Ptr getCloudsOut();
