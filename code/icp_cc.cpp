@@ -22,7 +22,7 @@ void CC_ICP::IcpUseCC(double RMSD_,int max_it_,int max_size_,double overlap_)
 	using ccPointCloud = CCCoreLib::PointCloudTpl<PointCloud>;
 	using PointT = pcl::PointXYZ;
 
-	// ****************************×ª»»Êý¾Ý******************************
+	// ****************************trans data******************************
 	std::shared_ptr<ccPointCloud> ccCloud(new ccPointCloud);
 	for (int i = 0; i < source_clouds_->points.size(); i++) {
 		ccCloud->addPoint(CCVector3(source_clouds_->points[i].x,
@@ -35,44 +35,31 @@ void CC_ICP::IcpUseCC(double RMSD_,int max_it_,int max_size_,double overlap_)
 			target_clouds_->points[i].y, target_clouds_->points[i].z));
 	}
 
-	std::cout << "Ô´µãÔÆµãÊýÁ¿£º" << ccCloud->size() << std::endl
-		<< "Ä¿±êµãÔÆµãÊýÁ¿£º" << ccCloudR->size() << std::endl;
+	std::cout << "source cloud point_countï¼š" << ccCloud->size() << std::endl
+		<< "target cloud point_countï¼š" << ccCloudR->size() << std::endl;
 
-	// **************************µãÔÆ½üËÆ¾àÀë¼ÆËã****************************
+	// **************************pointcloud distance****************************
 	unsigned iterationCount = 0;
 	double finalRMS = 0.0;
 	unsigned finalPointCount = 0;
-	//¾ÍÏñÔÚCCÈí¼þÖÐµÄÉèÖÃ
-	//Parameters½á¹¹Ìå
 	CCCoreLib::ICPRegistrationTools::Parameters parameters;
 	{
-		//iterationCountÎª0£¬¾ÍÊ¹ÓÃ//Åä×¼Ëã·¨µÄÊÕÁ²¿ØÖÆ·½·¨¡ª¡ªÑ¡Ôñ»ùÓÚ×î´óÎó²îµÄÊÕÁ²
 		parameters.convType = ((iterationCount != 0) ? CCCoreLib::ICPRegistrationTools::MAX_ITER_CONVERGENCE
 			: CCCoreLib::ICPRegistrationTools::MAX_ERROR_CONVERGENCE);
-		//ÉèÖÃÁ½´Îµü´úÖ±½ÓµÄ²îÖµ×÷ÎªÖÕÖ¹Ìõ¼þ
-		parameters.minRMSDecrease = RMSD_;/////////////////////////////////
+		parameters.minRMSDecrease = RMSD_;//important
 		parameters.nbMaxIterations = max_it_;
 		parameters.adjustScale = false;
-		//£¡ÊÇ·ñºöÂÔ²Î¿¼µãÖÐ×îÔ¶µÄµã
 		parameters.filterOutFarthestPoints = true;
-		//£¡Ã¿¸öÔÆµÄ×î´óµãÊý£¬Èç¹û³¬¹ý¸ÃÏÞÖÆ£¬½«Ëæ»ú²ÉÑù£¿£¿£¿
-		parameters.samplingLimit = max_size_;///////////////////////////////////
-		//£¡×îÖØÒªµÄÀíÂÛÖØµþ±ÈÂÊ
-		parameters.finalOverlapRatio = overlap_;///////////////////////////////
-
+		parameters.samplingLimit = max_size_;//important
+		parameters.finalOverlapRatio = overlap_;//important
 		parameters.modelWeights = nullptr;
 		parameters.dataWeights = nullptr;
 		parameters.transformationFilters = 0;
-		//£¡×î´óÏß³ÌÊý£¬ÓÃÓÚ¼ÓËÙ¼ÆËã
-		//Ô´ÂëÖÐÐ´½øÐÐÏß³Ì¼ÆËãÐèÒªÍø¸ñ»¯£¬±¾´úÂëÃ»ÓÐÊ¹ÓÃÍø¸ñ»¯!!!
-		parameters.maxThreadCount = 0;/////////////////////////////////////////
-		//ÊÇ·ñ¼ÆËãC2MµÄÓÐ·ûºÅ¾àÀë£¬ÓÃÓÚÔÚ²¿·ÖÖØµþÊ±½«ÔÆÒÆ¶¯µ½Íø¸ñµÄÍâ²¿
+		parameters.maxThreadCount = 0;//important
 		parameters.useC2MSignedDistances = false; //TODO
-		//Åä×¼¹ý³ÌÖÐµÄ·¨Ïß´¦Àí¡ª¡ª²»¿¼ÂÇ·¨Ïß
 		parameters.normalsMatching = CCCoreLib::ICPRegistrationTools::NO_NORMAL; 
 	}
 
-	//Åä×¼½á¹ûµÄÀàÐÍ£¿		.hÎÄ¼þÖÐµÄenum RESULT_TYPE
 	CCCoreLib::ICPRegistrationTools::RESULT_TYPE result;
 	CCCoreLib::PointProjectionTools::Transformation transform;
 	result = CCCoreLib::ICPRegistrationTools::Register
@@ -81,18 +68,14 @@ void CC_ICP::IcpUseCC(double RMSD_,int max_it_,int max_size_,double overlap_)
 		ccCloud.get(),
 		parameters,
 		transform,
-		finalRMS,//ÓÃÓÚ½ÓÊÕÅä×¼¹ý³Ì½áÊøÊ±µÄ×îÖÕ¾ù·½¸ùÎó²î
-		finalPointCount//ÓÃÓÚ½ÓÊÕ¼ÆËã×îÖÕRMSÊ±ËùÊ¹ÓÃµÄµãµÄÊýÁ¿,ÓÐÖúÓÚÁË½âÅä×¼½á¹ûµÄ¿É¿¿ÐÔ£¬ÌØ±ðÊÇÔÚÊ¹ÓÃËæ»ú²ÉÑùµÈ²ßÂÔÊ±
+		finalRMS,
+		finalPointCount
 	);
-
-	/*Eigen::Affine3d transformMat;
-	transformMat.fill(0);*/
 
 	if (result >= CCCoreLib::ICPRegistrationTools::ICP_ERROR)
 	{
-		std::cout << "ICPÅä×¼Ê§°Ü£¡" << std::endl;
+		std::cout << "ICPé…å‡†å¤±è´¥ï¼" << std::endl;
 	}
-	//Åä×¼³É¹¦
 	else if (result == CCCoreLib::ICPRegistrationTools::ICP_APPLY_TRANSFO)
 	{
 		CCCoreLib::SquareMatrixd R = transform.R;
@@ -100,7 +83,6 @@ void CC_ICP::IcpUseCC(double RMSD_,int max_it_,int max_size_,double overlap_)
 		{
 			for (unsigned j = 0; j < 3; ++j)
 			{
-				//sÊÇËõ·ÅÒò×Ó£¬ÔÚ.hÎÄ¼þÖÐ
 				T.matrix()(0, j) = static_cast<float>(R.m_values[0][j] * transform.s);
 				T.matrix()(1, j) = static_cast<float>(R.m_values[1][j] * transform.s);
 				T.matrix()(2, j) = static_cast<float>(R.m_values[2][j] * transform.s);
@@ -110,12 +92,9 @@ void CC_ICP::IcpUseCC(double RMSD_,int max_it_,int max_size_,double overlap_)
 		T.matrix()(0, 3) = transform.T.x;
 		T.matrix()(1, 3) = transform.T.y;
 		T.matrix()(2, 3) = transform.T.z;
-		//T.matrix()(3, 3) = transform.s;
 		T.matrix()(3, 3) = 1;
 	}
-	std::cout << "RMS:" << finalRMS << "¡£ With using " << finalPointCount << "points" << std::endl;
-	//std::cout << "ICPÇóµÃµÄ×ª»»¾ØÕó£º\n" << T.matrix() << std::endl;
-	//T = transformMat;
+	std::cout << "RMS:" << finalRMS << "ã€‚ With using " << finalPointCount << "points" << std::endl;
 }
 
 void CC_ICP::Trans()
@@ -125,7 +104,7 @@ void CC_ICP::Trans()
 
 	pcl::io::savePCDFileBinary("source_result_ICP.pcd", *source_results);
 	pcl::io::savePCDFileBinary("target_result_ICP.pcd", *target_results);
-	std::cout << "ICP±ä»»½á¹û±£´æ³É¹¦£¡" << std::endl;
+	std::cout << "ICP successï¼" << std::endl;
 }
 
 Eigen::Affine3d CC_ICP::getMatix()
