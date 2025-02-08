@@ -1,5 +1,5 @@
 #include <iostream>
-#include <pcl/console/parse.h>//consoleÖÐµÄ×Ö¶ÎµÄÍ·ÎÄ¼þ
+#include <pcl/console/parse.h>
 #include <pcl/console/print.h>
 #include <pcl/visualization/cloud_viewer.h>
 #include <pcl/visualization/pcl_visualizer.h>
@@ -20,16 +20,14 @@
 #include"branch_registration.h"
 #include"icp_cc.h"
 
-double tstart, tstop, ttime;//Ê±¼ä
+double tstart, tstop, ttime;
 std::string dir_;
-std::vector<std::pair<std::string, boost::filesystem::path>> pcd_files_; // ÓÃ pair ´æ´¢ÎÄ¼þÃûºÍÂ·¾¶
-// ×ÔÈ»ÅÅÐò±È½Ïº¯Êý
+std::vector<std::pair<std::string, boost::filesystem::path>> pcd_files_; 
 bool naturalCompare(const std::string& a, const std::string& b) {
     auto ai = a.begin();
     auto bi = b.begin();
     while (ai != a.end() && bi != b.end()) {
         if (std::isdigit(*ai) && std::isdigit(*bi)) {
-            // ´¦ÀíÊý×Ö
             std::string num1, num2;
             while (ai != a.end() && std::isdigit(*ai)) num1 += *ai++;
             while (bi != b.end() && std::isdigit(*bi)) num2 += *bi++;
@@ -46,28 +44,22 @@ bool naturalCompare(const std::string& a, const std::string& b) {
     return a.size() < b.size();
 }
 
-//Ô´µãÔÆ±ä»»µ½Ä¿±êµãÔÆ
 int
 main(int argc, char** argv)
 {
-    tstart = (double)clock() / CLOCKS_PER_SEC;//¼ÆÊ±
-
-    // ¿ªÊ¼×ÜÊ±¼ä¼ÇÂ¼
+    tstart = (double)clock() / CLOCKS_PER_SEC;
     std::chrono::time_point<std::chrono::high_resolution_clock> start_total = std::chrono::high_resolution_clock::now();
-
-
     pcl::console::print_info("Begin to have pcd file list\n");
-    if (argc < 2)//º¯ÊýÃû¿ªÊ¼¼´¼ÆÊýÎª1 
+    if (argc < 2)
     {
         pcl::console::print_error("Syntax is: %s ./your_program -dir /path/to/pointclouds \n", argv[0]);
         pcl::console::print_info("  where options are:\n");
         pcl::console::print_info("                     -dir X =directory of pcd sequences");
         return -1;
     }
-    pcl::console::parse_argument(argc, argv, "-dir", dir_);//Ê¶±ð-dir£¬½«ºóÃæµÄÄÚÈÝ·Åµ½dir_ÖÐ
-    pcd_files_.clear(); // Çå¿ÕÈÝÆ÷
+    pcl::console::parse_argument(argc, argv, "-dir", dir_);
+    pcd_files_.clear();
 
-    //µãÔÆÐòÁÐ¶ÁÈ¡Ä£¿é
     boost::filesystem::directory_iterator end_itr;
     if (boost::filesystem::is_directory(dir_))
     {
@@ -84,14 +76,13 @@ main(int argc, char** argv)
                 PCL_DEBUG("[PCDVideoPlayer::selectFolderButtonPressed] : found a different file\n");
             }
         }
-    }//.pcdÎÄ¼þµÄÎÄ¼þÃûºÍÎÄ¼þÂ·¾¶·Ö±ð´æ·Å
+    }
     else
     {
         PCL_ERROR("Path is not a directory\n");
         exit(-1);
     }
 
-    // ¶ÔÎÄ¼þÃûºÍÂ·¾¶½øÐÐÅÅÐò
     std::sort(pcd_files_.begin(), pcd_files_.end(), [](const auto& a, const auto& b) {
         return naturalCompare(a.first, b.first);
         });
@@ -99,8 +90,7 @@ main(int argc, char** argv)
     pcl::console::print_info("Have pcd file list successfully\n");
     int size_squences = pcd_files_.size();
     std::cout << "Total file of squences is " << size_squences << std::endl;
-    
-    // Êä³öÎÄ¼þÃû
+
     for (const auto& file : pcd_files_)
     {
         std::cout << file.first << std::endl;
@@ -109,58 +99,38 @@ main(int argc, char** argv)
     pcl::PointCloud<pcl::PointXYZ>::Ptr target(new pcl::PointCloud<pcl::PointXYZ>);
     pcl::io::loadPCDFile<pcl::PointXYZ>(pcd_files_[0].second.string(), *target);
 
-
-
-    //Õâ¸öÊÇ³É¹¦µÄ²¿·Ö
-   // ×îÖÕµÄ¶ÁÈ¡µãÔÆÊý¾Ý³ÌÐò
     for (int j = 1; j < size_squences; j++)
     {
-        std::cout << "\n£¡£¡£¡ÕâÊÇµÚ " << j << " ´Î" << std::endl;
-        // ¼ÆÊ±ÈÎÎñ1
+        std::cout << "\nï¼ï¼ï¼this is the " << j << " times" << std::endl;
+
         std::chrono::time_point<std::chrono::high_resolution_clock> start_coarse = std::chrono::high_resolution_clock::now();
 
-        float voxel_t = 0.008;//ÌåËØ´óÐ¡Ó¦¸ÃËæ×ÅµãµÄÊýÁ¿±ä´ó
+        float voxel_t = 0.008;
         int cluster_t_min = 150;
         int cluster_t_max = 1500;
         int cluster_t_min_j = j * cluster_t_min;
         int cluster_t_max_j = j * cluster_t_max;
-
-        int cluster_t_min_short = 100;
-        int cluster_t_max_short = 1000;//600
-        int cluster_t_min_j_short = j * cluster_t_min_short;
-        int cluster_t_max_j_short = j * cluster_t_max_short;
-        //double overlap_ = 0.4;
-        //¶ÁÈ¡µãÔÆÊý¾Ý
-        //std::cout << "Reading file: " << i + 1 << " and " << i + 2 << " " << std::endl;
         pcl::PointCloud<pcl::PointXYZ>::Ptr source(new pcl::PointCloud<pcl::PointXYZ>);
         pcl::io::loadPCDFile<pcl::PointXYZ>(pcd_files_[j].second.string(), *source);
         std::cout << "Loaded source_cloud: " << source->width * source->height << " data points" << std::endl;
         std::cout << "Loaded target_cloud: " << target->width * target->height << " data points" << std::endl;
-
-        //----------------------------------------------------------------------------------------
-               //----------------------------------------------------------------------------------------
-               //Ô¤´¦Àí£¬ºóÐøÒª°ÑÕâÐ©ÕûºÏµ½Ò»¸öÔ¤´¦Àíº¯Êý£¬°ÑÊ÷Ö¦´¦ÀíÒ²·Å½øÕâ¸öÀàÖÐ¡£
+        
         PointCloudPreprocessor pre_s(source);
-        pre_s.ransac_ground(10000, 0.15, 1); //0.12
+        pre_s.ransac_ground(10000, 0.15, 1);
         pre_s.statiscal_removal(5, 0.1);
         pre_s.voxel_removal(voxel_t);
-        pre_s.height_filter(0.5, 1.5);//!!!!!!!!!!!!
+        pre_s.height_filter(0.5, 1.5);
         pre_s.cluster(0.06, 1000, 1000000);
-        //pre_s.mls_suface(2, 0.03, 1);
         pre_s.normal_estimate(0.03, 1);
 
         PointCloudPreprocessor pre_t(target);
         pre_t.ransac_ground(10000, 0.15, 1);
         pre_t.statiscal_removal(5, 0.1);
         pre_t.voxel_removal(voxel_t);
-        //////////!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!???????????????????????????????????
-        //ÕâÀïÓÃ0.5-1.0Ö®¼äµÄÊ÷¸ÉÄâºÏÔ²Öù£¬µ«ÊÇºóÃæÑ¡È¡µÄÊÇ0.7-1.5Ö®¼äµÄÊ÷Ö¦£¬»¹ÐèÒªÔÙ¿¼ÂÇ
-        pre_t.height_filter(0.5, 1.5);//!!!!!!!!!!!!
+        pre_t.height_filter(0.5, 1.5);
         pre_t.cluster(0.06, 1000, 1000000);
-        //pre_t.mls_suface(2, 0.03, 1);
         pre_t.normal_estimate(0.03, 1);
-
-        //ÖÐ²¿Ê÷¸ÉÔ²ÖùÄâºÏ
+        
         CylinderFitter cy_s(pre_s.getNCloudsOut());
         cy_s.setCloudHei(pre_s.getHeightClouds());
         cy_s.fitCylinder(0.01, 10000, 0.01, 0.2, 1);
@@ -170,23 +140,19 @@ main(int argc, char** argv)
         cy_t.setCloudHei(pre_t.getHeightClouds());
         cy_t.fitCylinder(0.01, 10000, 0.01, 0.2, 1);
         std::cout << "\n" << cy_t.getCylinderParams().axis << std::endl;
-        //std::cout << cy_s.getCylinderParams().center << std::endl;
-
-        //Ê÷Ö¦Ô¤´¦Àí
-        BranchSegment branch_s(pre_s.getStatiscalClouds());//ÊäÈëµÄµãÔÆÖ»¾­¹ýÁËÍ³¼ÆÂË²¨
-        branch_s.ring_seg(cy_s.getCylinderParams(), pre_s.getGroundPlane(), 0.07, 0.14, 0.5, 1.5);//0.2-0.25Õâ¸ö¾àÀëÐèÒªÔÙ¿¼¾¿£¬ÒòÎªÇÐµÄ½ü£¬²ÅÄÜÇÐµ½´Ö×³µÄ£¡£¡£¡£¡£¡£¡£¡
-        branch_s.cluster_branch(cy_s.getCylinderParams(), 0.01, cluster_t_min, cluster_t_max);//95\124
+        
+        BranchSegment branch_s(pre_s.getStatiscalClouds());
+        branch_s.ring_seg(cy_s.getCylinderParams(), pre_s.getGroundPlane(), 0.07, 0.14, 0.5, 1.5);
+        branch_s.cluster_branch(cy_s.getCylinderParams(), 0.01, cluster_t_min, cluster_t_max);
 
         BranchSegment branch_t(pre_t.getStatiscalClouds());
-        ////////////////////////////////////////////////////////////////////////////////0.7->0.5(×îºóÒ»´Î¸ÄµÄ)/////////////////////////////////////////////
         branch_t.ring_seg(cy_t.getCylinderParams(), pre_t.getGroundPlane(), 0.07, 0.14, 0.5, 1.5);
         branch_t.cluster_branch(cy_t.getCylinderParams(), 0.01, cluster_t_min_j, cluster_t_max_j);
 
-        //Ê÷Ö¦Åä¶Ô
         BranchMatcher matcher;
         matcher.SetSortedClusters(branch_s.getSortedClusters(), branch_t.getSortedClusters());
-        std::cout << "Ç±ÔÚÅä¶ÔÊ÷Ö¦source£º" << branch_s.getSortedClusters().size() << " £»Ç±ÔÚÅä¶ÔÊ÷Ö¦target£º" << branch_t.getSortedClusters().size() << std::endl;
-        //±£´æÅä¶ÔÊ÷Ö¦pcd
+        std::cout << "potential pair from sourceï¼š" << branch_s.getSortedClusters().size() << " ï¼›potential pair from targetï¼š" << branch_t.getSortedClusters().size() << std::endl;
+
         MatchingResult result_s_t =
             matcher.MatchBranches(
                 cy_s.getCylinderParams(),
@@ -194,40 +160,24 @@ main(int argc, char** argv)
                 0.005, 0.262, 0.05, j);
         result_s_t.SaveMatchedClustersAsPCDs(branch_s.getAllBranch(), branch_t.getAllBranch());
 
-        /*Ê¹ÓÃÊ÷¸ÉÅä×¼ºóµÄ×ø±ê½øÐÐÊ÷Ö¦Åä×¼£¬µ«ÕÒÅä¶ÔÊ±È´ÊÇÓÃÊ÷Ö¦Åä×¼Ç°µÄ£¬ÕâÆäÖÐµÄ×ø±ê¹ØÏµ£¿£¿£¿£¿£¿£¿£¿£¿£¿£¿£¿£¿£¿£¿£¿£¿£¿£¿£¿£¿£¿£¿
-        Ö»ËµÈÆZÖáÐý×ª£¬¿ÉÒÔ½«ÏòÁ¿Ö±½ÓÍ¶Ó°µ½XOYÆ½Ãæ£¬Çó¼Ð½Ç¡£
-        µ½µ×ÈÆÄÄ¸öÖá×ª£¬ÇÒÈç¹ûÐèÒª³ÉÎªÈÆZÖá×ª£¬Ç°ÃæÊ÷¸ÉÅä×¼ÒªÔõÃ´¸Ä£¿
-        Ö±½ÓÊ¹ÓÃT£¬ÔÚ±ä»»µãÔÆµÄÍ¬Ê±£¬±ä»»µØÃæºÍÖáÏß²ÎÊý¡£*/
-
-        //Ê÷Ö¦Åä×¼
         BranchRegistration branch(source, target);
-        //Ö»ÓÃ×îÓÅµÄÒ»¶ÔÅä¶Ô
         branch.alignCylinders_with_project(result_s_t.GetMatchedClustersWithScores()[0].matched_pair);
         branch.BranchCoarseRegistration();
-
-        //----------------------------------------------------------------------------------------
-        //----------------------------------------------------------------------------------------
-        //Ê¹ÓÃT±ä»»,»ñÈ¡±ä»»ºóµãÔÆÖÐºóÐøÒªÓÃµ½µÄ²ÎÊý£¡£¡£¡£¡£¡£¡£¡£¡£¡£¡£¡£¡
+        
         PointCloudPreprocessor pre_ss(branch.getSourceAlignedCloud());
-        pre_ss.ransac_ground(10000, 0.15, 1); //0.12
+        pre_ss.ransac_ground(10000, 0.15, 1);
         pre_ss.statiscal_removal(10, 0.1);
         pre_ss.voxel_removal(voxel_t);
-        //!!!!!!!
         pre_ss.height_filter(0.2, 0.3);
-        //pre_ss.cluster(0.03, 100, 10000); //¾ÛÀàÊä³öµã¸öÊý×î´ó¾ÛÀà,4-4µÄµÚÒ»Õ¾£¬ÔÓ²Ýµã¸ü¶à£¬µ¼ÖÂ³öÎÊÌâ
         pre_ss.mls_suface(2, 0.03, 1);
-        // return 0;
 
         PointCloudPreprocessor pre_tt(branch.getTargetAlignedCloud());
-        pre_tt.ransac_ground(10000, 0.15, 1); //¡¢¡¢¡¢¡¢¡¢¡¢¡¢¡¢¡¢¡¢¡¢¡¢¡¢¡¢¡¢¡¢¡¢¡¢¡¢¡¢¡¢¡¢¡¢0.12
+        pre_tt.ransac_ground(10000, 0.15, 1); 
         pre_tt.statiscal_removal(10, 0.1);
         pre_tt.voxel_removal(voxel_t);
-        //!!!!!!!
-        pre_tt.height_filter(0.2, 0.3);//ÐèÒªÓÐµØÃæ²ÎÊý£¬¼´ransac_groundº¯Êý
-        //pre_tt.cluster(0.03, 100, 10000); //¾ÛÀàÊä³öµã¸öÊý×î´ó¾ÛÀà
+        pre_tt.height_filter(0.2, 0.3);
         pre_tt.mls_suface(2, 0.03, 1);
 
-        //Ê÷¸ÉÔ²ÖùÄâºÏ
         CylinderFitter cy_ss(pre_ss.getCloudsOut());
         cy_ss.setCloudHei(pre_ss.getHeightClouds());
         cy_ss.fitCylinder(0.1, 10000, 0.01, 0.2, 1);
@@ -236,27 +186,20 @@ main(int argc, char** argv)
         cy_tt.setCloudHei(pre_tt.getHeightClouds());
         cy_tt.fitCylinder(0.1, 10000, 0.01, 0.2, 1);
 
-        //Ê÷¸ÉÅä×¼
         CylindricalRegistration trunk(branch.getSourceAlignedCloud(), branch.getTargetAlignedCloud());
         trunk.alignCylinders(cy_ss.getCylinderParams(), cy_tt.getCylinderParams());
         trunk.TrunkCoarseRegistration();
 
-        //´ÖÅä×¼µÄ±ä»»¾ØÕó
         Eigen::Affine3d Tr = trunk.getMatix() * branch.getMatix();
-        std::cout << "\n´ÖÅä×¼µÄ±ä»»¾ØÕó£º\n" << Tr.matrix() << std::endl;
+        std::cout << "\ncoarse registration matrixï¼š\n" << Tr.matrix() << std::endl;
 
 
         std::chrono::time_point<std::chrono::high_resolution_clock> end_coarse = std::chrono::high_resolution_clock::now();
         std::chrono::seconds duration_task1 = std::chrono::duration_cast<std::chrono::seconds>(end_coarse - start_coarse);
         std::cout << "Coarse-Registration took " << duration_task1.count() << " s." << std::endl;
 
-
-        //----------------------------------------------------------------------------------------
-        //----------------------------------------------------------------------------------------
-        //  // ¼ÆÊ±ÈÎÎñ2
         std::chrono::time_point<std::chrono::high_resolution_clock> start_icp = std::chrono::high_resolution_clock::now();
 
-        //icp½øÐÐ¾«Åä×¼
         PointCloudPreprocessor pre_sss(trunk.getSourceAlignedCloud());
         pre_sss.ransac_ground(10000, 0.15, 1);
         pre_sss.statiscal_removal(10, 0.1);
@@ -270,7 +213,6 @@ main(int argc, char** argv)
         pre_ttt.voxel_removal(voxel_t);
         pre_ttt.height_filter(0.2, 0.3);
         pre_ttt.mls_suface(2, 0.03, 1);
-        //Ê÷¸ÉÔ²ÖùÄâºÏ
         CylinderFitter cy_sss(pre_sss.getCloudsOut());
         cy_sss.setCloudHei(pre_sss.getHeightClouds());
         cy_sss.fitCylinder(0.1, 10000, 0.01, 0.2, 1);
@@ -278,61 +220,39 @@ main(int argc, char** argv)
         CylinderFitter cy_ttt(pre_ttt.getCloudsOut());
         cy_ttt.setCloudHei(pre_ttt.getHeightClouds());
         cy_ttt.fitCylinder(0.1, 10000, 0.01, 0.2, 1);
-        //Ê÷¸ÉÈ¥³ý,overlapÖ±½ÓÐ´1
-        //±ØÐë°ÑÊ÷¸ÉÇÐÁË£¡£¡£¡
         BranchSegment branch_ss(pre_sss.getVoxelClouds());
         branch_ss.ring_seg(cy_sss.getCylinderParams(), pre_sss.getGroundPlane(), cy_sss.getCylinderParams().radius + 0.1, cy_sss.getCylinderParams().radius + 2, 0, 4);
 
         BranchSegment branch_tt(pre_ttt.getVoxelClouds());
         branch_tt.ring_seg(cy_ttt.getCylinderParams(), pre_ttt.getGroundPlane(), cy_ttt.getCylinderParams().radius + 0.1, cy_ttt.getCylinderParams().radius + 2, 0, 4);
 
-
-        //CCµÄICP
         std::cout << "Ready to use icp-cc" << std::endl;
         CC_ICP icp;
         icp.setInitialClouds(trunk.getSourceAlignedCloud(), trunk.getTargetAlignedCloud());
-        //icp.setInitialClouds(branch_ss.getAllBranch(), branch_tt.getAllBranch());
         icp.setPreprocessClouds(branch_ss.getAllBranch(), branch_tt.getAllBranch());
         icp.IcpUseCC(1e-7, 1000, 80000, 0.9);
         icp.Trans();
+        std::cout << "\nfine registration matrixï¼š\n" << icp.getMatix().matrix() << std::endl;
 
-        //icp¾«Åä×¼µÄ±ä»»¾ØÕó
-        std::cout << "\n¾«Åä×¼µÄ±ä»»¾ØÕó£º\n" << icp.getMatix().matrix() << std::endl;
-
-        ////ÏÈ±£´æÅä×¼ºóµÄsourceµãÔÆ
-        //std::stringstream trans;
-        //trans << "trans_source" << j << ".pcd";
-        //pcl::io::savePCDFileBinary(trans.str(), *icp.getSourceResults());
-
-        //½«ÐÂµÄ±ä»»ºóµÄµãÔÆ¼ÓÈëµ½targetÖÐ
         *target += *(icp.getSourceResults());
 
-        ////±£´æÉÏÒ»²½ÈÚÈëÔöÇ¿µÄtargetµãÔÆ£¬ÓÃÓÚµ÷ÊÔ
-        //std::stringstream tarstrong;
-        //tarstrong << "tarstrong" << j << ".pcd";
-        //pcl::io::savePCDFileBinary(tarstrong.str(), *target);
-
-        //ÕûÌåµÄ±ä»»¾ØÕó
         Eigen::Affine3d T = icp.getMatix() * trunk.getMatix() * branch.getMatix();
-        std::cout << "\nÊä³öÕûÌåµÄ±ä»»¾ØÕó£º\n" << T.matrix() << std::endl;
+        std::cout << "\nthe final registration matrixï¼š\n" << T.matrix() << std::endl;
 
         std::chrono::time_point<std::chrono::high_resolution_clock> end_icp = std::chrono::high_resolution_clock::now();
         std::chrono::seconds duration_task2 = std::chrono::duration_cast<std::chrono::seconds>(end_icp - start_icp);
         std::cout << "Task 2 took " << duration_task2.count() << " s." << std::endl;
 
     }
-
-    //ËùÓÐµÄsource±ä»»ºó¶¼¼ÓÈëµ½targetÁË£¬ËùÒÔ×îÖÕµÄtarget¾ÍÊÇ½á¹û
     pcl::io::savePCDFileBinary("jieguo.pcd", *target);
 
-    // ¼ÆËã×ÜÊ±¼ä
     std::chrono::time_point<std::chrono::high_resolution_clock> end_total = std::chrono::high_resolution_clock::now();
     std::chrono::seconds duration_total = std::chrono::duration_cast<std::chrono::seconds>(end_total - start_total);
     std::cout << "Total time: " << duration_total.count() << " s." << std::endl;
 
     tstop = (double)clock() / CLOCKS_PER_SEC;
     ttime = tstop - tstart;
-    std::cout << "run time is " << ttime << " seconds." << std::endl;//µãÔÆ´¦ÀíÊ±¼ä
+    std::cout << "run time is " << ttime << " seconds." << std::endl;
 
     std::cout << "Finish!!!" << std::endl;
 
