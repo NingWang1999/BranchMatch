@@ -19,7 +19,6 @@ struct ClusterInfo
 	bool operator<(const ClusterInfo& other) const 
 	{
 		return z_relative < other.z_relative;
-		//return inlier_amount > other.inlier_amount;
 	}
 };
 class BranchSegment
