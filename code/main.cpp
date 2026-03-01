@@ -10,6 +10,8 @@
 #include <algorithm> // for std::sort
 #include <chrono>
 #include <cctype>
+#include <fstream>
+#include <iomanip>
 
 #include"config.h"
 #include"point_cloud_preprocessor.h"
@@ -44,6 +46,27 @@ bool naturalCompare(const std::string& a, const std::string& b) {
         }
     }
     return a.size() < b.size();
+}
+
+void saveRegistrationMatrices(const boost::filesystem::path& output_file,
+    const Eigen::Matrix4d& coarse_matrix,
+    const Eigen::Matrix4d& fine_matrix)
+{
+    std::ofstream ofs(output_file.string());
+    if (!ofs.is_open())
+    {
+        std::cerr << "[错误] 无法写入矩阵文件: " << output_file.string() << std::endl;
+        return;
+    }
+
+    ofs << std::fixed << std::setprecision(10);
+    ofs << "# CoarseRegistrationMatrix\n";
+    ofs << coarse_matrix << "\n\n";
+    ofs << "# FineRegistrationMatrix\n";
+    ofs << fine_matrix << "\n";
+    ofs.close();
+
+    std::cout << "[保存] 配准矩阵文件: " << output_file.string() << std::endl;
 }
 
 //源点云变换到目标点云
@@ -584,6 +607,12 @@ main(int argc, char** argv)
         //整体的变换矩阵（使用保存的矩阵）
         Eigen::Affine3d T = icp.getMatix() * best_trunk_matrix * best_branch_matrix;
         std::cout << "\n输出整体的变换矩阵：\n" << T.matrix() << std::endl;
+
+        const std::string source_name = pcd_files_[j].second.stem().string();
+        const std::string target_name = pcd_files_[0].second.stem().string();
+        const boost::filesystem::path matrix_output_path = boost::filesystem::path(dir_) /
+            ("Est_" + source_name + "_to_" + target_name + ".txt");
+        saveRegistrationMatrices(matrix_output_path, best_Tr.matrix(), T.matrix());
 
         std::chrono::time_point<std::chrono::high_resolution_clock> end_icp = std::chrono::high_resolution_clock::now();
         std::chrono::seconds duration_task2 = std::chrono::duration_cast<std::chrono::seconds>(end_icp - start_icp);
