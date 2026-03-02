@@ -422,7 +422,7 @@ main(int argc, char** argv)
         pcl::PointCloud<pcl::PointXYZ>::Ptr best_source_aligned(new pcl::PointCloud<pcl::PointXYZ>);
         pcl::PointCloud<pcl::PointXYZ>::Ptr best_target_aligned(new pcl::PointCloud<pcl::PointXYZ>);
         int max_inliers = -1;
-        double min_rmse = 1000.0;
+        double min_mean_error = 1000.0;
         int best_k = 0;
 
         std::cout << "\n[启动矩阵级验证] 开始逐一验证前 " << K_max << " 个配对..." << std::endl;
@@ -504,18 +504,18 @@ main(int argc, char** argv)
                 }
             }
 
-            double current_rmse = (current_inliers > 0) ? (current_error_sum / current_inliers) : 1000.0;
-            std::cout << "  -> 检验结果: 成功对齐了 " << current_inliers << " 根树枝, 平均距离误差: " << current_rmse << "m" << std::endl;
+            double current_mean_error = (current_inliers > 0) ? (current_error_sum / current_inliers) : 1000.0;
+            std::cout << "  -> 检验结果: 成功对齐了 " << current_inliers << " 根树枝, 平均距离误差: " << current_mean_error << "m" << std::endl;
 
             // ==========================================
             // Step 3: 更新全局最优（同时保存中间结果）
             // ==========================================
             // 谁对齐的树枝多，谁就是最优解；如果对齐数量一样，选平均误差最小的
             if (current_inliers > max_inliers ||
-                (current_inliers == max_inliers && current_rmse < min_rmse))
+                (current_inliers == max_inliers && current_mean_error < min_mean_error))
             {
                 max_inliers = current_inliers;
-                min_rmse = current_rmse;
+                min_mean_error = current_mean_error;
                 best_Tr = current_Tr;
                 best_k = k;
                 // 保存中间结果，避免循环后重新计算
@@ -529,7 +529,7 @@ main(int argc, char** argv)
             // Step 4: 提前终止条件 (节省计算时间)
             // ==========================================
             // 假设一棵树一共有 5 根有效分支，如果当前矩阵能完美对齐 3 根以上，并且误差极小，就认为找对了！
-            if (current_inliers >= 3 && current_rmse < 0.05) {
+            if (current_inliers >= 3 && current_mean_error < 0.05) {
                 std::cout << "[完美命中] 已找到高度置信的配准矩阵，提前终止验证循环！" << std::endl;
                 break;
             }
@@ -537,7 +537,7 @@ main(int argc, char** argv)
 
         std::cout << "\n========================================" << std::endl;
         std::cout << "最终选定候选对 [" << best_k + 1 << "] 作为最优解！" << std::endl;
-        std::cout << "该矩阵共匹配了 " << max_inliers << " 根树枝，平均误差 " << min_rmse << "m" << std::endl;
+        std::cout << "该矩阵共匹配了 " << max_inliers << " 根树枝，平均误差 " << min_mean_error << "m" << std::endl;
         std::cout << "粗配准的变换矩阵：\n" << best_Tr.matrix() << std::endl;
         std::cout << "========================================\n" << std::endl;
 
